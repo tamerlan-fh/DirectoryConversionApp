@@ -1,0 +1,140 @@
+﻿<Window x:Class="DirectoryConversionApp.Views.MainView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800" WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <ControlTemplate x:Key="WaitControlTemplate">
+            <Border BorderThickness="1"
+                    BorderBrush="{x:Static SystemColors.ControlDarkDarkBrush}">
+                <DockPanel HorizontalAlignment="Center" 
+                           VerticalAlignment="Center">
+                    <Image Width="16" 
+                           Height="16" 
+                           Margin="5,0"
+                           SnapsToDevicePixels="True"
+                           Source="/DirectoryConversionApp;component/Images/loading_16.png">
+                        <Image.RenderTransform>
+                            <RotateTransform CenterX="8" CenterY="8" />
+                        </Image.RenderTransform>
+                        <Image.Triggers>
+                            <EventTrigger RoutedEvent="Image.Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Image.RenderTransform).(RotateTransform.Angle)"
+                                                                       RepeatBehavior="Forever"
+                                                                       SpeedRatio="1.5">
+                                            <DiscreteDoubleKeyFrame KeyTime="0:0:0.125" Value="45.0" />
+                                            <DiscreteDoubleKeyFrame KeyTime="0:0:0.250" Value="90.0" />
+                                            <DiscreteDoubleKeyFrame KeyTime="0:0:0.375" Value="135.0" />
+                                            <DiscreteDoubleKeyFrame KeyTime="0:0:0.500" Value="180.0" />
+                                            <DiscreteDoubleKeyFrame KeyTime="0:0:0.625" Value="225.0" />
+                                            <DiscreteDoubleKeyFrame KeyTime="0:0:0.750" Value="270.0" />
+                                            <DiscreteDoubleKeyFrame KeyTime="0:0:0.875" Value="315.0" />
+                                            <DiscreteDoubleKeyFrame KeyTime="0:0:1.000" Value="360.0" />
+                                        </DoubleAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Image.Triggers>
+                    </Image>
+                    <TextBlock Text="Please wait while items is loading..." />
+                </DockPanel>
+            </Border>
+        </ControlTemplate>
+        
+        <ControlTemplate x:Key="ValidationErrorTemplate">
+            <StackPanel>
+                <!-- Placeholder for the TextBox itself -->
+                <AdornedElementPlaceholder Name="AdornedElement"/>
+                <TextBox Text="{Binding [0].ErrorContent, Mode=OneWay}" 
+                         Foreground="Red" Background="Transparent"
+                         FontFamily="Calibri" FontStyle="Italic"
+                         IsReadOnly="True"
+                         BorderThickness="0"
+                         TextWrapping="Wrap"
+                         Width="{Binding ElementName=AdornedElement, Path=ActualWidth, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+        </ControlTemplate>
+
+        <Style x:Key="ValidatableTextBoxStyle" TargetType="{x:Type TextBox}">
+            <Setter Property="Validation.ErrorTemplate" Value="{StaticResource ValidationErrorTemplate}"/>
+            <Setter Property="Margin" Value="2"/>
+            <Style.Triggers>
+                <Trigger Property="Validation.HasError" Value="true">
+                    <Setter Property="BorderBrush" Value="Red"/>
+                    <Setter Property="BorderThickness" Value="2"/>
+                    <Setter Property="Margin" Value="2,2,2,18"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ReadonlyTextBoxStyle" TargetType="{x:Type TextBox}">
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="IsReadOnly" Value="True" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition MinWidth="100" Width="auto"/>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="80"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Исходный файл" TextAlignment="Right" VerticalAlignment="Top" Grid.Row="0" Grid.Column="0" Margin="3"/>
+        <TextBox Text="{Binding InputPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Grid.Row="0" Grid.Column="1"
+                 Style="{StaticResource ValidatableTextBoxStyle}"/>
+        <Button Content="Обзор..." Grid.Row="0" Grid.Column="2" Margin="2" VerticalAlignment="Top" 
+                Command="{Binding SetInputPathCommand}"/>
+
+        <TextBlock Text="Имя справочника" TextAlignment="Right" VerticalAlignment="Top" Grid.Row="1" Grid.Column="0" Margin="3"/>
+        <TextBox Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                 Style="{StaticResource ValidatableTextBoxStyle}"/>
+
+        <TextBlock Text="Guid справочника" TextAlignment="Right" VerticalAlignment="Top" Grid.Row="2" Grid.Column="0" Margin="3"/>
+        <TextBox Text="{Binding DirectoryGuid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                 Style="{StaticResource ValidatableTextBoxStyle}"/>
+
+        <DataGrid Grid.Row="3" Grid.ColumnSpan="3" 
+                  Margin="2"
+                  CanUserAddRows="False" 
+                  CanUserDeleteRows="False" 
+                  CanUserReorderColumns="False"
+                  IsReadOnly="True"
+                  ColumnWidth="*"
+                  Background="White" 
+                  ScrollViewer.CanContentScroll="False"
+                  ItemsSource="{Binding DataTable, UpdateSourceTrigger=PropertyChanged, IsAsync=True}">
+            <DataGrid.Style>
+                <Style TargetType="DataGrid">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsBusy, UpdateSourceTrigger=PropertyChanged}" Value="True">
+                            <Setter Property="Template" Value="{StaticResource WaitControlTemplate}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Style>
+        </DataGrid>
+
+        <TextBlock Text="Конечный файл" TextAlignment="Right" VerticalAlignment="Top" Grid.Row="4" Grid.Column="0" Margin="3"/>
+        <TextBox Text="{Binding OutPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Grid.Row="4" Grid.Column="1"
+                 Style="{StaticResource ValidatableTextBoxStyle}"/>
+        <Button Content="Обзор..." Grid.Row="4" Grid.Column="2" Margin="2" VerticalAlignment="Top" 
+                Command="{Binding SetOutPathCommand}"/>
+        <Button Content="Конвертировать" Grid.Row="5" Grid.ColumnSpan="3" Margin="2" 
+                Command="{Binding ConvertCommand}"/>
+    </Grid>
+</Window>
