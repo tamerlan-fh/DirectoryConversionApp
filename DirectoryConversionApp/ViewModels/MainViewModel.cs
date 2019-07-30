@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Xml.Linq;
 
 namespace DirectoryConversionApp.ViewModels
 {
@@ -95,6 +96,22 @@ namespace DirectoryConversionApp.ViewModels
             if (!CanConvert())
                 return;
 
+            var filename = $"Classif_{DirectoryGuid}.xml";
+            using (var zipFile = new ZipFile())
+            {
+                using (var stream = new MemoryStream())
+                {
+                    var document = CreateXml();
+                    document.Save(stream, SaveOptions.None);
+                    zipFile.AddEntry(filename, stream.ToArray());
+                    zipFile.Save(OutPath);
+                }
+            }
+            MessageBox.Show($"Файл создан и сохранен!", "Выполнено", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private XDocument CreateXml()
+        {
             var sb = new StringBuilder();
             sb.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             sb.AppendLine("<ClassifCard xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
@@ -128,13 +145,7 @@ namespace DirectoryConversionApp.ViewModels
             sb.AppendLine("</CustomRows>");
             sb.AppendLine("</ClassifCard>");
 
-            var filename = $"Classif_{DirectoryGuid}.xml";
-            using (var zipFile = new ZipFile())
-            {
-                zipFile.AddEntry(filename, sb.ToString(), Encoding.UTF8);
-                zipFile.Save(OutPath);
-            }
-            MessageBox.Show($"Файл создан и сохранен!", "Выполнено", MessageBoxButton.OK, MessageBoxImage.Information);
+            return XDocument.Parse(sb.ToString());
         }
 
         private bool CanConvert()
@@ -187,7 +198,7 @@ namespace DirectoryConversionApp.ViewModels
                     if (worksheet is null)
                         throw new Exception($"Файл {file.FullName} не содержит ни одного листа!");
                     CustomClassIf = CustomClassIfHelper.Parse(worksheet);
-                    ToDataBase(CustomClassIf);
+                    ToDataTable(CustomClassIf);
                 }
             });
             await task;
@@ -196,7 +207,7 @@ namespace DirectoryConversionApp.ViewModels
                 throw task.Exception.GetBaseException();
         }
 
-        private void ToDataBase(CustomClassIf classIf)
+        private void ToDataTable(CustomClassIf classIf)
         {
             var table = new DataTable(Name);
             foreach (var columnName in classIf.FieldNames)
