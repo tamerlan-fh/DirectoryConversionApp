@@ -73,9 +73,12 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Converters\RowNumberConverter.cs" />
     <Compile Include="CustomClassIf.cs" />
     <Compile Include="CustomClassIfHelper.cs" />
     <Compile Include="CustomClassIfRow.cs" />
+    <Compile Include="Extensions.cs" />
+    <Compile Include="MunicipalServiceFrguCodesHelper.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="ViewModels\NotifyErrorViewModel.cs" />
     <Compile Include="ViewModels\RelayCommand.cs" />

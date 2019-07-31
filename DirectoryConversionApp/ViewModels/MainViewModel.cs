@@ -2,6 +2,8 @@
 using Microsoft.Win32;
 using OfficeOpenXml;
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.IO;
 using System.Linq;
@@ -21,6 +23,7 @@ namespace DirectoryConversionApp.ViewModels
             SetInputPathCommand = new RelayCommand(obj => SetInputPath());
             SetOutPathCommand = new RelayCommand(obj => SetOutPath());
             directoryGuid = Guid.NewGuid().ToString("D");
+            directoryType = DirectoryType.Default;
         }
 
         public string Name
@@ -54,13 +57,7 @@ namespace DirectoryConversionApp.ViewModels
             {
                 if (InputPath == value) return;
                 inputPath = value; OnPropertyChanged(nameof(InputPath));
-                if (ValidateInputPath())
-                {
-                    if (!outPathSetedByUser)
-                        OutPath = Path.Combine(Path.GetDirectoryName(InputPath), $"{Path.GetFileNameWithoutExtension(InputPath)}_{DateTime.Now.ToString("yyyy.MM.dd-HH.mm.ss")}.zip");
-
-                    Load(new FileInfo(InputPath));
-                }
+                TryLoad();
             }
         }
         private string inputPath;
@@ -83,6 +80,23 @@ namespace DirectoryConversionApp.ViewModels
             set { isBusy = value; OnPropertyChanged(nameof(IsBusy)); }
         }
         private bool isBusy = false;
+
+        public DirectoryType DirectoryType
+        {
+            get { return directoryType; }
+            set
+            {
+                directoryType = value; OnPropertyChanged(nameof(DirectoryType));
+                if (DirectoryGuids.TryGetValue(DirectoryType, out Guid guid))
+                    DirectoryGuid = guid.ToString("D");
+                else
+                    DirectoryGuid = Guid.NewGuid().ToString("D");
+                if (DirectoryNames.TryGetValue(DirectoryType, out string name))
+                    Name = name;
+                TryLoad();
+            }
+        }
+        private DirectoryType directoryType;
 
         public CustomClassIf CustomClassIf { get; private set; }
 
@@ -150,7 +164,7 @@ namespace DirectoryConversionApp.ViewModels
 
         private bool CanConvert()
         {
-            return !HasErrors;
+            return !HasErrors && CustomClassIf != null;
         }
 
         #endregion ConvertCommand
@@ -186,25 +200,40 @@ namespace DirectoryConversionApp.ViewModels
 
         #endregion SetOutPathCommand
 
-        private async void Load(FileInfo file)
+        private void TryLoad()
         {
-            IsBusy = true;
-
-            var task = Task.Run(() =>
+            if (ValidateInputPath())
             {
-                using (var package = new ExcelPackage(file))
-                {
-                    var worksheet = package.Workbook.Worksheets.FirstOrDefault();
-                    if (worksheet is null)
-                        throw new Exception($"Файл {file.FullName} не содержит ни одного листа!");
-                    CustomClassIf = CustomClassIfHelper.Parse(worksheet);
-                    ToDataTable(CustomClassIf);
-                }
-            });
-            await task;
-            IsBusy = false;
-            if (task.Status == TaskStatus.Faulted)
-                throw task.Exception.GetBaseException();
+                if (!outPathSetedByUser)
+                    OutPath = Path.Combine(Path.GetDirectoryName(InputPath), $"{Path.GetFileNameWithoutExtension(InputPath)}_{DateTime.Now.ToString("yyyy.MM.dd-HH.mm.ss")}.zip");
+
+                Task.Run(async () => {
+                    var file = new FileInfo(InputPath);
+                    IsBusy = true;
+
+                    var task = Task.Run(() =>
+                    {
+                        using (var package = new ExcelPackage(file))
+                        {
+                            var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+                            if (worksheet is null)
+                                throw new Exception($"Файл {file.FullName} не содержит ни одного листа!");
+
+                            switch (DirectoryType)
+                            {
+                                case DirectoryType.MunicipalServiceFrguCodes: CustomClassIf = MunicipalServiceFrguCodesHelper.Parse(worksheet); break;
+                                default: CustomClassIf = CustomClassIfHelper.Parse(worksheet); break;
+                            }
+
+                            ToDataTable(CustomClassIf);
+                        }
+                    });
+                    await task.ConfigureAwait(false);
+                    IsBusy = false;
+                    if (task.Status == TaskStatus.Faulted)
+                        throw task.Exception.GetBaseException();
+                });
+            }
         }
 
         private void ToDataTable(CustomClassIf classIf)
@@ -297,5 +326,34 @@ namespace DirectoryConversionApp.ViewModels
         }
 
         #endregion validation
+
+        private readonly Dictionary<DirectoryType, Guid> DirectoryGuids = new Dictionary<DirectoryType, Guid>()
+        {
+           { DirectoryType.MunicipalServiceFrguCodes, Guid.Parse("fa101c64-0e12-4ee7-ba9e-3c5b7c263d90") }
+        };
+
+        private readonly Dictionary<DirectoryType, string> DirectoryNames = new Dictionary<DirectoryType, string>()
+        {
+           { DirectoryType.MunicipalServiceFrguCodes, "Коды ФРГУ муниципальных услуг" }
+        };
+
+        public static Dictionary<DirectoryType, string> DirectoryTypes
+        {
+            get
+            {
+                if (directoryTypes is null)
+                    directoryTypes = Enum.GetValues(typeof(DirectoryType)).Cast<DirectoryType>().ToDictionary(x => x, x => x.GetDescription());
+                return directoryTypes;
+            }
+        }
+        private static Dictionary<DirectoryType, string> directoryTypes;
+    }
+
+    enum DirectoryType
+    {
+        [Description("Обычный словарь")]
+        Default,
+        [Description("Коды ФРГУ муниципальных услуг")]
+        MunicipalServiceFrguCodes
     }
 }

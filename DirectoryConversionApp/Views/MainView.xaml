@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:convert="clr-namespace:DirectoryConversionApp.Converters"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800" WindowStartupLocation="CenterScreen">
     <Window.Resources>
@@ -88,6 +89,7 @@
             <RowDefinition Height="auto"/>
             <RowDefinition Height="auto"/>
             <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="auto"/>
             <RowDefinition Height="auto"/>
@@ -108,7 +110,16 @@
         <TextBox Text="{Binding DirectoryGuid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
                  Style="{StaticResource ValidatableTextBoxStyle}"/>
 
-        <DataGrid Grid.Row="3" Grid.ColumnSpan="3" 
+        <TextBlock Text="Тип справочника" TextAlignment="Right" VerticalAlignment="Top" Grid.Row="3" Grid.Column="0" Margin="3"/>
+        <!--<TextBox Text="{Binding DirectoryGuid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
+                 Style="{StaticResource ValidatableTextBoxStyle}"/>-->
+        <ComboBox VerticalAlignment="Center" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="2"
+                  ItemsSource="{Binding DirectoryTypes, Mode=OneTime}" 
+                  DisplayMemberPath="Value" 
+                  SelectedValuePath="Key"
+                  SelectedValue="{Binding DirectoryType, UpdateSourceTrigger=PropertyChanged}"/>
+
+        <DataGrid Grid.Row="4" Grid.ColumnSpan="3" 
                   Margin="2"
                   CanUserAddRows="False" 
                   CanUserDeleteRows="False" 
@@ -117,7 +128,13 @@
                   ColumnWidth="*"
                   Background="White" 
                   ScrollViewer.CanContentScroll="False"
-                  ItemsSource="{Binding DataTable, UpdateSourceTrigger=PropertyChanged, IsAsync=True}">
+                  ScrollViewer.HorizontalScrollBarVisibility="Auto" 
+                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                  ItemsSource="{Binding DataTable, UpdateSourceTrigger=PropertyChanged, IsAsync=True}" 
+                  AlternationCount="{Binding Items.Count, RelativeSource={RelativeSource Self}}">
+            <DataGrid.Resources>
+                <convert:RowNumberConverter x:Key="RowNumberConverter"/>
+            </DataGrid.Resources>
             <DataGrid.Style>
                 <Style TargetType="DataGrid">
                     <Style.Triggers>
@@ -127,14 +144,21 @@
                     </Style.Triggers>
                 </Style>
             </DataGrid.Style>
+            <DataGrid.RowHeaderTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Path=., RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowNumberConverter}}"/>
+                </DataTemplate>
+            </DataGrid.RowHeaderTemplate>
+
         </DataGrid>
 
-        <TextBlock Text="Конечный файл" TextAlignment="Right" VerticalAlignment="Top" Grid.Row="4" Grid.Column="0" Margin="3"/>
-        <TextBox Text="{Binding OutPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Grid.Row="4" Grid.Column="1"
+        <TextBlock Text="Конечный файл" TextAlignment="Right" VerticalAlignment="Top" Grid.Row="5" Grid.Column="0" Margin="3"/>
+        <TextBox Text="{Binding OutPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Grid.Row="5" Grid.Column="1"
                  Style="{StaticResource ValidatableTextBoxStyle}"/>
-        <Button Content="Обзор..." Grid.Row="4" Grid.Column="2" Margin="2" VerticalAlignment="Top" 
+        <Button Content="Обзор..." Grid.Row="5" Grid.Column="2" Margin="2" VerticalAlignment="Top" 
                 Command="{Binding SetOutPathCommand}"/>
-        <Button Content="Конвертировать" Grid.Row="5" Grid.ColumnSpan="3" Margin="2" 
+       
+        <Button Content="Конвертировать" Grid.Row="6" Grid.ColumnSpan="3" Margin="2" 
                 Command="{Binding ConvertCommand}"/>
     </Grid>
 </Window>
