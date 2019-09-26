@@ -207,7 +207,8 @@ namespace DirectoryConversionApp.ViewModels
                 if (!outPathSetedByUser)
                     OutPath = Path.Combine(Path.GetDirectoryName(InputPath), $"{Path.GetFileNameWithoutExtension(InputPath)}_{DateTime.Now.ToString("yyyy.MM.dd-HH.mm.ss")}.zip");
 
-                Task.Run(async () => {
+                Task.Run(async () =>
+                {
                     var file = new FileInfo(InputPath);
                     IsBusy = true;
 
@@ -274,6 +275,11 @@ namespace DirectoryConversionApp.ViewModels
             if (string.IsNullOrWhiteSpace(Name))
             {
                 AddError(nameof(Name), "это поле не может быть пустым");
+                return;
+            }
+            if (Name.Length > 128)
+            {
+                AddError(nameof(Name), "слошком длинное название. ограничение - 128 символов");
                 return;
             }
         }
